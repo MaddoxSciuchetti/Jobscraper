@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Handwerk - Home & Articles</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Navigation -->
+        <nav class="nav">
+            <div class="nav-brand">Handwerk</div>
+            <div class="nav-tabs">
+                <button class="tab-btn active" data-tab="home">Home</button>
+                <button class="tab-btn" data-tab="articles">Articles</button>
+            </div>
+        </nav>
+
+        <!-- Tab Content -->
+        <main class="content">
+            <!-- Home Tab -->
+            <div id="home" class="tab-content active">
+                <div class="hero">
+                    <h1>Welcome to Handwerk</h1>
+                    <p class="hero-subtitle">Discover insightful articles and stories</p>
+                    <div class="hero-cta">
+                        <button class="btn btn-primary" onclick="switchTab('articles')">
+                            Explore Articles
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="features">
+                    <div class="feature-card">
+                        <div class="feature-icon">📚</div>
+                        <h3>Quality Content</h3>
+                        <p>Curated articles on various topics</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🚀</div>
+                        <h3>Fast & Modern</h3>
+                        <p>Built with modern web technologies</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">💡</div>
+                        <h3>Insightful</h3>
+                        <p>Learn something new every day</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Articles Tab -->
+            <div id="articles" class="tab-content">
+                <div class="articles-header">
+                    <h1>Articles</h1>
+                    <p>Browse our collection of articles</p>
+                </div>
+                
+                <div id="loading" class="loading">
+                    <div class="spinner"></div>
+                    <p>Loading articles...</p>
+                </div>
+                
+                <div id="error" class="error hidden">
+                    <p>Failed to load articles. Please try again later.</p>
+                </div>
+                
+                <div id="articles-grid" class="articles-grid">
+                    <!-- Articles will be dynamically inserted here -->
+                </div>
+                
+                <div id="no-articles" class="no-articles hidden">
+                    <p>No articles found. Check back soon!</p>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>&copy; 2025 Handwerk. All rights reserved.</p>
+        </footer>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
