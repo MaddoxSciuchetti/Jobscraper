@@ -10,6 +10,8 @@ A clean and modern webpage with two tabs (Home and Articles) connected to Supaba
 - ⚡ Fast and lightweight
 - 🎯 Simple tab navigation
 - 🔒 Secure database connection with Row Level Security
+- 📝 **Admin Dashboard** for creating and managing articles
+- 🔐 Authentication-protected admin area
 
 ## Tech Stack
 
@@ -64,15 +66,29 @@ python3 -m http.server 8000
 npx serve
 ```
 
+### 5. Set Up Admin Access (Optional)
+
+To use the admin dashboard for creating articles:
+
+1. Follow the instructions in `ADMIN_SETUP.md`
+2. Create an admin user in Supabase Authentication
+3. Access the dashboard at `admin.html`
+
+See **[ADMIN_SETUP.md](ADMIN_SETUP.md)** for detailed instructions.
+
 ## Project Structure
 
 ```
 webpage.handwerk/
 ├── index.html          # Main HTML structure
-├── styles.css          # All styling and responsive design
-├── app.js             # Application logic and Supabase integration
+├── admin.html          # Admin dashboard
+├── styles.css          # Main styling
+├── admin-styles.css    # Admin dashboard styling
+├── app.js             # Public site logic
+├── admin.js           # Admin dashboard logic
 ├── config.js          # Supabase configuration
 ├── setup.sql          # Database schema and sample data
+├── ADMIN_SETUP.md     # Admin setup guide
 ├── .env               # Database credentials (not used in frontend)
 └── README.md          # This file
 ```
@@ -99,12 +115,17 @@ webpage.handwerk/
 
 You can add articles through:
 
-1. **Supabase Dashboard**:
+1. **Admin Dashboard** (Recommended):
+   - Go to `admin.html`
+   - Sign in with your admin credentials
+   - Fill out the article form and click "Publish Article"
+
+2. **Supabase Dashboard**:
    - Go to Table Editor → articles
    - Click "Insert row"
    - Fill in the article details
 
-2. **SQL Query**:
+3. **SQL Query**:
    ```sql
    INSERT INTO articles (title, excerpt, author, image_url, url)
    VALUES (

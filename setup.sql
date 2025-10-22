@@ -37,29 +37,12 @@ CREATE POLICY "Allow authenticated users to update" ON articles
     TO authenticated
     USING (true);
 
--- Insert sample articles (optional)
-INSERT INTO articles (title, excerpt, author, image_url, url) VALUES
-    (
-        'Getting Started with Web Development',
-        'Learn the fundamentals of modern web development including HTML, CSS, and JavaScript.',
-        'John Doe',
-        'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800',
-        'https://example.com/article1'
-    ),
-    (
-        'Introduction to Supabase',
-        'Discover how Supabase can accelerate your application development with its powerful features.',
-        'Jane Smith',
-        'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=800',
-        'https://example.com/article2'
-    ),
-    (
-        'Modern UI Design Principles',
-        'Explore the key principles of creating beautiful and functional user interfaces.',
-        'Alex Johnson',
-        'https://images.unsplash.com/photo-1561070791-2526d30994b5?w=800',
-        'https://example.com/article3'
-    );
+CREATE POLICY "Allow authenticated users to delete" ON articles
+    FOR DELETE
+    TO authenticated
+    USING (true);
+
+-- No sample articles - start with a clean slate
 
 -- Create function to automatically update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()

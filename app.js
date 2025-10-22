@@ -1,15 +1,18 @@
 // Tab Switching Functionality
 function switchTab(tabName) {
     // Remove active class from all tabs and content
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.classList.remove('active');
+    document.querySelectorAll('.nav-link').forEach(link => {
+        link.classList.remove('active');
     });
     document.querySelectorAll('.tab-content').forEach(content => {
         content.classList.remove('active');
     });
 
     // Add active class to selected tab and content
-    document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+    const activeLink = document.querySelector(`[data-tab="${tabName}"]`);
+    if (activeLink) {
+        activeLink.classList.add('active');
+    }
     document.getElementById(tabName).classList.add('active');
 
     // Load articles when switching to articles tab
@@ -18,10 +21,10 @@ function switchTab(tabName) {
     }
 }
 
-// Event listeners for tab buttons
-document.querySelectorAll('.tab-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-        const tabName = btn.getAttribute('data-tab');
+// Event listeners for nav links
+document.querySelectorAll('.nav-link[data-tab]').forEach(link => {
+    link.addEventListener('click', () => {
+        const tabName = link.getAttribute('data-tab');
         switchTab(tabName);
     });
 });
@@ -35,14 +38,14 @@ async function loadArticles() {
 
     const loadingEl = document.getElementById('loading');
     const errorEl = document.getElementById('error');
-    const articlesGridEl = document.getElementById('articles-grid');
+    const articlesListEl = document.getElementById('articles-list');
     const noArticlesEl = document.getElementById('no-articles');
 
     // Show loading state
     loadingEl.classList.remove('hidden');
     errorEl.classList.add('hidden');
     noArticlesEl.classList.add('hidden');
-    articlesGridEl.innerHTML = '';
+    articlesListEl.innerHTML = '';
 
     try {
         // Fetch articles from Supabase
@@ -77,17 +80,17 @@ async function loadArticles() {
 }
 
 function renderArticles(articles) {
-    const articlesGridEl = document.getElementById('articles-grid');
+    const articlesListEl = document.getElementById('articles-list');
     
     articles.forEach(article => {
-        const articleCard = createArticleCard(article);
-        articlesGridEl.appendChild(articleCard);
+        const articleItem = createArticleItem(article);
+        articlesListEl.appendChild(articleItem);
     });
 }
 
-function createArticleCard(article) {
-    const card = document.createElement('div');
-    card.className = 'article-card';
+function createArticleItem(article) {
+    const item = document.createElement('div');
+    item.className = 'article-item';
     
     // Format date
     const date = new Date(article.created_at);
@@ -97,35 +100,19 @@ function createArticleCard(article) {
         day: 'numeric' 
     });
 
-    // Truncate excerpt if too long
-    const excerpt = article.excerpt 
-        ? (article.excerpt.length > 150 
-            ? article.excerpt.substring(0, 150) + '...' 
-            : article.excerpt)
-        : 'No description available.';
+    // Use excerpt or content
+    const excerpt = article.excerpt || article.content || '';
 
-    card.innerHTML = `
-        ${article.image_url 
-            ? `<img src="${article.image_url}" alt="${article.title}" class="article-image">` 
-            : '<div class="article-image"></div>'}
-        <div class="article-content">
-            <h3 class="article-title">${escapeHtml(article.title)}</h3>
-            <p class="article-excerpt">${escapeHtml(excerpt)}</p>
-            <div class="article-meta">
-                <span class="article-author">${escapeHtml(article.author || 'Anonymous')}</span>
-                <span class="article-date">${formattedDate}</span>
-            </div>
+    item.innerHTML = `
+        <h3 class="article-title">${escapeHtml(article.title)}</h3>
+        ${excerpt ? `<p class="article-excerpt">${escapeHtml(excerpt)}</p>` : ''}
+        <div class="article-meta">
+            <span class="article-author">${escapeHtml(article.author || 'Anonymous')}</span>
+            <span class="article-date">${formattedDate}</span>
         </div>
     `;
 
-    // Add click handler if article has a URL
-    if (article.url) {
-        card.addEventListener('click', () => {
-            window.open(article.url, '_blank');
-        });
-    }
-
-    return card;
+    return item;
 }
 
 // Utility function to escape HTML and prevent XSS
