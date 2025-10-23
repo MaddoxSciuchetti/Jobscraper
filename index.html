@@ -12,8 +12,6 @@
         <div class="sidebar-content">
             <h1 class="brand">Maddox Baut</h1>
             <nav class="nav">
-                <button class="nav-link active" data-tab="home">Home</button>
-                <button class="nav-link" data-tab="articles">Articles</button>
                 <a href="admin.html" class="nav-link">Admin</a>
             </nav>
         </div>
@@ -21,31 +19,23 @@
 
     <!-- Main Content -->
     <main class="main">
-        <!-- Home Tab -->
-        <div id="home" class="tab-content active">
-            <h2></h2>
-            <p class="subtitle">A collection of my thoughts and ideas</p>
+        <h2></h2>
+        <p class="subtitle">A collection of my thoughts and ideas</p>
+        
+        <div id="loading" class="loading hidden">
+            <p>Loading...</p>
         </div>
-
-        <!-- Articles Tab -->
-        <div id="articles" class="tab-content">
-            <h2>Articles</h2>
-            
-            <div id="loading" class="loading hidden">
-                <p>Loading...</p>
-            </div>
-            
-            <div id="error" class="error hidden">
-                <p>Failed to load articles</p>
-            </div>
-            
-            <div id="articles-list">
-                <!-- Articles will be dynamically inserted here -->
-            </div>
-            
-            <div id="no-articles" class="no-articles hidden">
-                <p>No articles yet</p>
-            </div>
+        
+        <div id="error" class="error hidden">
+            <p>Failed to load articles</p>
+        </div>
+        
+        <div id="articles-list">
+            <!-- Articles will be dynamically inserted here -->
+        </div>
+        
+        <div id="no-articles" class="no-articles hidden">
+            <p>No articles yet</p>
         </div>
     </main>
 

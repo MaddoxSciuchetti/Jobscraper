@@ -1,40 +1,6 @@
-// Tab Switching Functionality
-function switchTab(tabName) {
-    // Remove active class from all tabs and content
-    document.querySelectorAll('.nav-link').forEach(link => {
-        link.classList.remove('active');
-    });
-    document.querySelectorAll('.tab-content').forEach(content => {
-        content.classList.remove('active');
-    });
-
-    // Add active class to selected tab and content
-    const activeLink = document.querySelector(`[data-tab="${tabName}"]`);
-    if (activeLink) {
-        activeLink.classList.add('active');
-    }
-    document.getElementById(tabName).classList.add('active');
-
-    // Load articles when switching to articles tab
-    if (tabName === 'articles') {
-        loadArticles();
-    }
-}
-
-// Event listeners for nav links
-document.querySelectorAll('.nav-link[data-tab]').forEach(link => {
-    link.addEventListener('click', () => {
-        const tabName = link.getAttribute('data-tab');
-        switchTab(tabName);
-    });
-});
-
 // Articles Management
-let articlesLoaded = false;
 
 async function loadArticles() {
-    // Only load once
-    if (articlesLoaded) return;
 
     const loadingEl = document.getElementById('loading');
     const errorEl = document.getElementById('error');
@@ -64,13 +30,11 @@ async function loadArticles() {
         // Check if articles exist
         if (!articles || articles.length === 0) {
             noArticlesEl.classList.remove('hidden');
-            articlesLoaded = true;
             return;
         }
 
         // Render articles
         renderArticles(articles);
-        articlesLoaded = true;
 
     } catch (error) {
         console.error('Error loading articles:', error);
@@ -130,4 +94,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!SUPABASE_CONFIG.anonKey || SUPABASE_CONFIG.anonKey === 'YOUR_SUPABASE_ANON_KEY_HERE') {
         console.warn('⚠️ Supabase anon key not configured. Please update config.js');
     }
+    
+    // Load articles on page load
+    loadArticles();
 });
