@@ -1512,7 +1512,6 @@ def main():
             if st.button(
                 "🔴 Start Recording", 
                 type="primary", 
-                use_container_width=True, 
                 key="transcribe_start"
             ):
                 with st.spinner(f"Recording for up to {recording_duration} seconds... Speak now!"):
@@ -1554,14 +1553,14 @@ def main():
                 
                 col_save, col_clear = st.columns(2)
                 with col_save:
-                    if st.button("💾 Save Report", type="primary", use_container_width=True, key="transcribe_save"):
+                    if st.button("💾 Save Report", type="primary", key="transcribe_save"):
                         filepath = save_report(edited_text)
                         st.success(f"✅ Report saved: {os.path.basename(filepath)}")
                         st.session_state.transcribed_text = ""
                         st.rerun()
                 
                 with col_clear:
-                    if st.button("🗑️ Clear", use_container_width=True, key="transcribe_clear"):
+                    if st.button("🗑️ Clear", key="transcribe_clear"):
                         st.session_state.transcribed_text = ""
                         st.rerun()
         
@@ -1592,7 +1591,7 @@ def main():
         )
 
         # Automatischer Such-Button
-        if st.button("🔎 Jetzt suchen", type="primary", use_container_width=True):
+        if st.button("🔎 Jetzt suchen", type="primary"):
             if search_term:
                 # Shops sind immer alle ausgewählt
                 selected_shops = ["obi", "wuertth", "bauhaus"]
@@ -1652,7 +1651,6 @@ def main():
                 # Mache Links klickbar
                 st.dataframe(
                     df,
-                    use_container_width=True,
                     column_config={
                         "link": st.column_config.LinkColumn(
                             "Link",
@@ -1724,7 +1722,7 @@ def main():
             slow_mo = st.slider("⏱️ Slow Motion (ms)", 0, 1000, 200, 50)
         
         # Start-Button
-        if st.button("🚀 Bewerbungen starten", type="primary", use_container_width=True):
+        if st.button("🚀 Bewerbungen starten", type="primary"):
             if not urls_input.strip():
                 st.warning("⚠️ Bitte geben Sie mindestens eine URL ein.")
             else:
