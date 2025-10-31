@@ -7,7 +7,14 @@ import json
 from datetime import datetime
 import time
 from pathlib import Path
-from dotenv import load_dotenv
+
+# Load environment variables with fallback for Streamlit Cloud
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    # On Streamlit Cloud, use st.secrets instead
+    pass
 
 # Transcriber imports
 import speech_recognition as sr
@@ -31,11 +38,12 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
 
-# Load environment variables
-load_dotenv()
-
 # ===== OpenAI integration =====
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+# Try to get API key from environment or Streamlit secrets
+try:
+    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY") or st.secrets.get("OPENAI_API_KEY")
+except:
+    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 # Detect and support both new and legacy OpenAI SDKs
 client_new = None
