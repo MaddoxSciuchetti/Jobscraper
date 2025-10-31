@@ -181,26 +181,25 @@ def load_csv_data(filepath):
         return None
 
 # ===== TRANSCRIBER FUNCTIONS =====
-def record_speech_with_stop():
-    """Capture audio with proper stop functionality for Streamlit."""
+def record_speech_simple(duration=10):
+    """Capture audio with a simple timeout-based approach."""
     r = sr.Recognizer()
-    r.pause_threshold = 2.0
-    r.phrase_threshold = 0.3
-    r.non_speaking_duration = 0.5
+    r.energy_threshold = 300
+    r.dynamic_energy_threshold = True
+    r.pause_threshold = 1.0  # Stop after 1 second of silence
     
     with sr.Microphone() as source:
         st.session_state.recording_status = "🎙️ Adjusting for ambient noise..."
-        r.adjust_for_ambient_noise(source, duration=1)
+        r.adjust_for_ambient_noise(source, duration=0.5)
         st.session_state.recording_status = "🔴 Recording... Speak now!"
         
         try:
-            # Use a fixed duration recording instead of continuous
-            # This is more reliable in Streamlit environment
-            audio = r.listen(source, timeout=10, phrase_time_limit=30)
+            # Record with shorter phrase limit for better responsiveness
+            audio = r.listen(source, timeout=5, phrase_time_limit=duration)
             st.session_state.recording_status = "✅ Recording complete!"
             return audio, r
         except sr.WaitTimeoutError:
-            st.session_state.recording_status = "⏰ No speech detected within 10 seconds"
+            st.session_state.recording_status = "⏰ No speech detected. Please try again."
             return None, r
         except Exception as e:
             st.session_state.recording_status = f"❌ Recording error: {str(e)}"
@@ -1490,9 +1489,6 @@ def main():
     
     # ===== TRANSCRIBER TAB =====
     with tab2:
-        st.header("🎙️ HVAC Sprachtranskriber")
-        st.markdown("Nehmen Sie Ihre HVAC-Berichte per Sprache auf und speichern Sie diese automatisch.")
-        
         # Berichte abrufen
         reports = get_saved_reports()
         
@@ -1502,79 +1498,29 @@ def main():
         with col1:
             st.header("🎤 Neuen Bericht aufnehmen")
             
-            # Statusanzeige
-            st.info(f"**Status:** {st.session_state.recording_status}")
+            # Recording duration slider
+            recording_duration = st.slider(
+                "Recording duration (seconds)",
+                min_value=5,
+                max_value=30,
+                value=10,
+                step=5,
+                help="Recording will stop after this duration or when you pause speaking"
+            )
             
-            # Start/Stop Buttons mit einfacherer Logik
-            col_start, col_stop = st.columns(2)
-            
-            with col_start:
-                if st.button(
-                    "🔴 START RECORDING", 
-                    type="primary", 
-                    use_container_width=True, 
-                    key="transcribe_start",
-                    disabled=st.session_state.is_recording
-                ):
-                    st.session_state.is_recording = True
-                    st.session_state.recording_status = "🎙️ Initializing microphone..."
-                    st.rerun()
-            
-            with col_stop:
-                if st.button(
-                    "⏹️ STOP RECORDING", 
-                    type="secondary", 
-                    use_container_width=True, 
-                    key="transcribe_stop",
-                    disabled=not st.session_state.is_recording
-                ):
-                    st.session_state.is_recording = False
-                    st.session_state.recording_status = "⏹️ Processing recording..."
-                    
-                    # Führe die Aufnahme sofort durch
-                    with st.spinner("Recording and transcribing..."):
-                        try:
-                            audio, recognizer = record_speech_with_stop()
-                            
-                            if audio is None:
-                                st.warning(st.session_state.recording_status)
-                                st.session_state.recording_status = "❌ Recording failed"
-                            else:
-                                st.success("Recording complete!")
-                                
-                                with st.spinner("Converting speech to text..."):
-                                    text, error = convert_to_text(audio, recognizer)
-                                    
-                                    if text:
-                                        st.session_state.transcribed_text = text
-                                        st.session_state.recording_status = "✅ Transcription completed!"
-                                        st.success("✅ Recording processed and transcribed!")
-                                    else:
-                                        st.error(error)
-                                        st.session_state.recording_status = "❌ Transcription failed"
-                            
-                            st.rerun()
-                            
-                        except Exception as e:
-                            st.session_state.recording_status = f"❌ Error: {str(e)}"
-                            st.error(f"❌ Error during recording: {str(e)}")
-                            st.rerun()
-            
-            # Wenn aufgenommen wird, zeige Status und starte Aufnahme automatisch
-            if st.session_state.is_recording and st.session_state.recording_status == "🎙️ Initializing microphone...":
-                st.markdown("---")
-                st.markdown("### 🎙️ **RECORDING IN PROGRESS**")
-                st.markdown("*Speak into your microphone now...*")
-                st.markdown("*Recording will automatically stop after 30 seconds or when you click STOP*")
-                
-                # Starte die Aufnahme automatisch
-                with st.spinner("Recording..."):
+            # Simple one-button recording
+            if st.button(
+                "🔴 Start Recording", 
+                type="primary", 
+                use_container_width=True, 
+                key="transcribe_start"
+            ):
+                with st.spinner(f"Recording for up to {recording_duration} seconds... Speak now!"):
                     try:
-                        audio, recognizer = record_speech_with_stop()
+                        audio, recognizer = record_speech_simple(duration=recording_duration)
                         
                         if audio is None:
                             st.warning(st.session_state.recording_status)
-                            st.session_state.recording_status = "❌ Recording failed"
                         else:
                             st.success("Recording complete!")
                             
@@ -1584,26 +1530,17 @@ def main():
                                 if text:
                                     st.session_state.transcribed_text = text
                                     st.session_state.recording_status = "✅ Transcription completed!"
-                                    st.success("✅ Recording processed and transcribed!")
+                                    st.success("✅ Transcription complete!")
+                                    st.rerun()
                                 else:
                                     st.error(error)
                                     st.session_state.recording_status = "❌ Transcription failed"
                         
-                        st.session_state.is_recording = False
-                        st.rerun()
-                        
                     except Exception as e:
                         st.session_state.recording_status = f"❌ Error: {str(e)}"
                         st.error(f"❌ Error during recording: {str(e)}")
-                        st.session_state.is_recording = False
-                        st.rerun()
             
-            # Zeige Status wenn aufgenommen wird
-            elif st.session_state.is_recording:
-                st.markdown("---")
-                st.markdown("### 🎙️ **RECORDING IN PROGRESS**")
-                st.markdown("*Speak into your microphone now...*")
-                st.markdown("Click **⏹️ STOP RECORDING** when you're finished")
+            st.info("💡 **Tip:** Recording will stop automatically when you pause speaking for 1 second, or when the duration limit is reached.")
             
             # Transkribierten Text anzeigen
             if st.session_state.transcribed_text:
@@ -1629,22 +1566,8 @@ def main():
                         st.rerun()
         
         with col2:
-            st.header("📁 Current Reports")
-            
-            if reports:
-                for report_path in reports[:5]:  # Show last 5 reports
-                    report_name = os.path.basename(report_path)
-                    with st.expander(report_name):
-                        with open(report_path, "r", encoding="utf-8") as f:
-                            content = f.read()
-                        st.text(content)
-                        
-                        if st.button(f"🗑️ Delete", key=f"delete_{report_name}"):
-                            os.remove(report_path)
-                            st.success(f"Deleted {report_name}")
-                            st.rerun()
-            else:
-                st.info("No reports yet. Start recording to create your first report!")
+            # Reports section removed
+            pass
     
     # ===== SHOPPING AGENT TAB =====
     with tab3:
