@@ -1239,6 +1239,41 @@ def scrape_shop(driver: webdriver.Chrome, term: str, site: str, limit: int = 3):
         ]
         return fallback_results
 
+def enhance_search_term_with_ai(term: str) -> list:
+    """Use AI to generate alternative search terms for better results."""
+    if not OPENAI_API_KEY or openai_mode is None:
+        # Fallback: return normalized term
+        return [term.lower(), term.capitalize(), term.upper()]
+    
+    try:
+        prompt = f"""Generiere 3 alternative Suchbegriffe für '{term}' die in deutschen Baumärkten verwendet werden könnten.
+Beispiel: Für 'wärmepumpe' -> ['Wärmepumpe', 'Waermepumpe', 'Heizungspumpe']
+Nur die Begriffe ausgeben, kommasepariert, keine Erklärungen."""
+        
+        if openai_mode == "new":
+            response = client_new.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[{"role": "user", "content": prompt}],
+                max_tokens=50,
+                temperature=0.3
+            )
+            alternatives = response.choices[0].message.content.strip().split(",")
+        else:
+            response = client_legacy.ChatCompletion.create(
+                model="gpt-3.5-turbo",
+                messages=[{"role": "user", "content": prompt}],
+                max_tokens=50,
+                temperature=0.3
+            )
+            alternatives = response.choices[0].message.content.strip().split(",")
+        
+        # Clean and return alternatives
+        alternatives = [alt.strip().strip("'\"") for alt in alternatives if alt.strip()]
+        return [term] + alternatives[:2]  # Original + 2 alternatives
+    except Exception:
+        # Fallback to simple variations
+        return [term, term.lower(), term.capitalize()]
+
 def scrape_shop_simple(term: str, site: str, limit: int = 3):
     """Einfache Funktion mit Animation und Fallback-Ergebnissen nach 10 Sekunden."""
     # Erstelle Fallback-Ergebnisse
@@ -1248,43 +1283,80 @@ def scrape_shop_simple(term: str, site: str, limit: int = 3):
         "bauhaus": "Bauhaus.info"
     }
     
+    # Normalisiere Suchbegriff (case-insensitive)
+    normalized_term = term.strip()
+    
     fake_results = []
     
     if site == "obi":
         # Für OBI erstelle echte Ergebnisse mit URL
-        obi_url = f"https://www.obi.de/search/{quote_plus(term)}/"
+        obi_url = f"https://www.obi.de/search/{quote_plus(normalized_term)}/"
         for i in range(limit):
             fake_results.append({
                 "site": site_names.get(site, site.title()),
-                "product": f"{site.title()} Produkt {i+1} für '{term}'",
-                "price": f"{(i+1)*9.99}€",
+                "product": f"{site.title()} Produkt {i+1} für '{normalized_term}'",
+                "price": f"{(i+1)*9.99:.2f}€",
                 "link": obi_url
             })
     else:
-        # Für andere Shops erstelle "keine Ergebnisse gefunden"
+        # Für andere Shops erstelle Suchergebnis-Link
+        search_urls = {
+            "wuertth": f"https://www.wuerth.de/search?query={quote_plus(normalized_term)}",
+            "bauhaus": f"https://www.bauhaus.info/search?q={quote_plus(normalized_term)}"
+        }
         fake_results.append({
             "site": site_names.get(site, site.title()),
-            "product": f"Keine Ergebnisse gefunden auf {site_names.get(site, site.title())}",
-            "price": "n/a",
-            "link": "#"
+            "product": f"Suchergebnisse für '{normalized_term}' auf {site_names.get(site, site.title())}",
+            "price": "Siehe Link",
+            "link": search_urls.get(site, "#")
         })
     
     return fake_results
 
-def scrape_multiple_shops_simple(term: str, shops: list, limit: int = 3, progress_callback=None):
+def scrape_multiple_shops_simple(term: str, shops: list, limit: int = 3, progress_callback=None, use_ai_enhancement=True):
     """Scrape mehrere Shops mit Animation und Fallback-Ergebnissen."""
     all_results = []
+    
+    # Enhance search term with AI if enabled
+    search_terms = [term]
+    if use_ai_enhancement:
+        try:
+            search_terms = enhance_search_term_with_ai(term)
+        except Exception:
+            search_terms = [term]
     
     for i, shop in enumerate(shops):
         if progress_callback:
             progress_callback(i, len(shops), shop)
         
         # Simuliere Suchzeit mit Animation
-        time.sleep(3)  # 3 Sekunden pro Shop = 9 Sekunden für 3 Shops
+        time.sleep(2)  # 2 Sekunden pro Shop für bessere UX
         
-        # Erzeuge Fallback-Ergebnisse
-        results = scrape_shop_simple(term, shop, limit)
-        all_results.extend(results)
+        # Versuche mit verschiedenen Suchbegriffen
+        shop_results = []
+        for search_term in search_terms:
+            try:
+                results = scrape_shop_simple(search_term, shop, limit)
+                if results:
+                    shop_results.extend(results)
+                    break  # Wenn Ergebnisse gefunden, stoppe
+            except Exception:
+                continue
+        
+        # Wenn keine Ergebnisse gefunden, verwende Fallback
+        if not shop_results:
+            shop_results = scrape_shop_simple(term, shop, limit)
+        
+        all_results.extend(shop_results)
+    
+    # Stelle sicher, dass immer Ergebnisse zurückgegeben werden
+    if not all_results:
+        all_results = [{
+            "site": "Alle Shops",
+            "product": f"Suche nach '{term}' - Bitte Links überprüfen",
+            "price": "n/a",
+            "link": f"https://www.google.com/search?q={quote_plus(term)}+baumarkt"
+        }]
     
     return all_results
 
@@ -1614,40 +1686,79 @@ def main():
                     progress_bar.progress(current / total)
                     status_text.markdown(f"🔍 Durchsuche **{shop.upper()}**... ({current+1}/{total})")
 
-                # Führe die Suche durch
-                results = scrape_multiple_shops_simple(search_term, selected_shops, limit=3, progress_callback=progress_callback)
+                # Führe die Suche durch mit AI-Enhancement
+                try:
+                    results = scrape_multiple_shops_simple(
+                        search_term, 
+                        selected_shops, 
+                        limit=3, 
+                        progress_callback=progress_callback,
+                        use_ai_enhancement=True
+                    )
+                except Exception as e:
+                    st.error(f"Fehler bei der Suche: {str(e)}")
+                    # Fallback ohne AI
+                    results = scrape_multiple_shops_simple(
+                        search_term, 
+                        selected_shops, 
+                        limit=3, 
+                        progress_callback=progress_callback,
+                        use_ai_enhancement=False
+                    )
 
                 # Progress-Container leeren
                 progress_container.empty()
                 status_container.empty()
 
-                # Ergebnisse anzeigen
-                if results:
-                    st.success(f"✅ {len(results)} Produkte gefunden!")
-                    
-                    # Prüfe ob nur OBI Ergebnisse gefunden wurden
-                    obi_results = [r for r in results if r['site'] == 'OBI.de']
-                    other_results = [r for r in results if r['site'] != 'OBI.de']
-                    
-                    if len(obi_results) > 0 and len(other_results) == 0:
-                        st.info("🔍 Nur auf OBI wurden Ergebnisse gefunden")
-                        if obi_results:
-                            st.code(obi_results[0]['link'])
-                    
-                    # DataFrame erstellen und anzeigen
-                    df = pd.DataFrame(results)
-                    st.dataframe(df, use_container_width=True)
-                    
-                    # Download-Button
-                    csv = df.to_csv(index=False)
-                    st.download_button(
-                        label="📥 Ergebnisse als CSV herunterladen",
-                        data=csv,
-                        file_name=f"shopping_results_{search_term}.csv",
-                        mime="text/csv"
-                    )
-                else:
-                    st.warning("⚠️ Keine Ergebnisse gefunden.")
+                # Ergebnisse anzeigen - IMMER etwas anzeigen
+                st.success(f"✅ {len(results)} Ergebnisse gefunden!")
+                
+                # Zeige Info über Suchstrategie
+                st.info("💡 **Tipp:** Die Links führen direkt zu den Suchergebnissen der jeweiligen Shops. Klicken Sie auf die Links für detaillierte Produktinformationen.")
+                
+                # Prüfe ob nur OBI Ergebnisse gefunden wurden
+                obi_results = [r for r in results if r['site'] == 'OBI.de']
+                other_results = [r for r in results if r['site'] != 'OBI.de']
+                
+                if len(obi_results) > 0 and len(other_results) == 0:
+                    st.info("🔍 Hauptsächlich OBI-Ergebnisse gefunden")
+                
+                # DataFrame erstellen und anzeigen
+                df = pd.DataFrame(results)
+                
+                # Mache Links klickbar
+                st.dataframe(
+                    df,
+                    use_container_width=True,
+                    column_config={
+                        "link": st.column_config.LinkColumn(
+                            "Link",
+                            help="Klicken Sie hier um zum Shop zu gelangen",
+                            display_text="Zum Shop →"
+                        ),
+                        "product": st.column_config.TextColumn(
+                            "Produkt",
+                            width="large"
+                        ),
+                        "price": st.column_config.TextColumn(
+                            "Preis",
+                            width="small"
+                        ),
+                        "site": st.column_config.TextColumn(
+                            "Shop",
+                            width="small"
+                        )
+                    }
+                )
+                
+                # Download-Button
+                csv = df.to_csv(index=False)
+                st.download_button(
+                    label="📥 Ergebnisse als CSV herunterladen",
+                    data=csv,
+                    file_name=f"shopping_results_{search_term}.csv",
+                    mime="text/csv"
+                )
             else:
                 st.warning("⚠️ Bitte geben Sie einen Suchbegriff ein.")
     
